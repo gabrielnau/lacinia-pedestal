@@ -142,8 +142,12 @@
               (cheshire/generate-string data)))
 
 (defn send-init
-  []
-  (send-data {:type :connection_init}))
+  ([]
+   (send-init nil))
+  ([payload]
+   (send-data {:type :connection_init
+               :payload payload})))
+
 
 (defn <message!!
   ([]

@@ -323,13 +323,12 @@
         "The completed subscriptions have been cleaned up.")))
 
 (deftest connection-params
-  (send-init)
-  (expect-message {:type "connection_ack"})
-  (let [id (swap! *subscriber-id inc)
-        connection-params {:authentication "token"}]
+  (let [connection-params {:authentication "token"}
+        id (swap! *subscriber-id inc)]
+    (send-init connection-params)
+    (expect-message {:type "connection_ack"})
     (send-data {:id id
                 :type :start
-                :connectionParams connection-params
                 :payload
                 {:query "subscription { ping(message: \"stop\", count: 1 ) { message }}"}})
     (<message!! 250) ;; block until streamer has been called
