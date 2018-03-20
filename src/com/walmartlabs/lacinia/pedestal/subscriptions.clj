@@ -111,7 +111,7 @@
              (log/debug :event ::client-close)
              (run! close! (vals subs)))
             ;; Otherwise it's a message from the client to be acted upon.
-           (let [{:keys [id payload type]} data]
+           (let [{:keys [id payload type connectionParams]} data]
              (case type
                "connection_init"
                (when (>! response-data-ch {:type :connection_ack})
@@ -123,8 +123,9 @@
                (if (contains? subs id)
                  (do (log/debug :event ::ignoring-duplicate :id id)
                      (recur subs))
-                 (do (log/debug :event ::start :id id)
-                     (recur (assoc subs id (execute-query-interceptors id payload response-data-ch cleanup-ch context)))))
+                 (let [merged-context (merge context {:connection-params connectionParams})]
+                   (log/debug :event ::start :id id)
+                   (recur (assoc subs id (execute-query-interceptors id payload response-data-ch cleanup-ch merged-context)))))
 
                "stop"
                (do
@@ -297,8 +298,8 @@
                           (put! source-stream-ch value)
                           (close! source-stream-ch)))
         app-context (-> context
-                        :request
-                        :lacinia-app-context
+                        (get-in [:request :lacinia-app-context])
+                        (merge {:connection-params (:connection-params context)})
                         (assoc constants/parsed-query-key parsed-query))
         cleanup-fn (executor/invoke-streamer app-context source-stream)]
     (go-loop []
